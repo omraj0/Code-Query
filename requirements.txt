@@ -10,3 +10,5 @@ langchain
 python-dotenv
 passlib[bcrypt]
 python-jose[cryptography]
+gunicorn
+pydantic-settings
