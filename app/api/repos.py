@@ -3,7 +3,7 @@ from sqlmodel import Session
 from typing import List
 from uuid import UUID
 from app.database import get_session
-from app.models import User, Repository
+from app.models import User, Repository, RepositoryStatus
 from app.schemas import RepoCreate, RepoRead, QuestionRequest, AnswerResponse
 from app.api.deps import get_current_user
 from app.services.ingestion import ingest_repository_task
@@ -30,7 +30,7 @@ def ingest_repo(
         owner_id=current_user.id,
         name=repo_name,
         url=repo_in.github_url,
-        status="Pending"
+        status=RepositoryStatus.PENDING
     )
     session.add(new_repo)
     session.commit()
@@ -57,7 +57,7 @@ def chat_repo(
     if repo.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this repository")
     
-    if repo.status != "Completed":
+    if repo.status != RepositoryStatus.COMPLETED:
         raise HTTPException(status_code=400, detail=f"Repository not ready. Status: {repo.status}")
         
     result = ask_question(repo.id, question_in.question)

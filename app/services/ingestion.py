@@ -1,13 +1,15 @@
 import os
 import shutil
+import stat
 import tempfile
 import uuid
 from git import Repo
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlmodel import Session, select
 from app.database import engine
-from app.models import Repository, CodeChunk
+from app.models import Repository, CodeChunk, RepositoryStatus
 from app.services.gemini import get_embedding
+import logging
 
 def ingest_repository_task(repo_id: uuid.UUID):
     with Session(engine) as session:
@@ -15,13 +17,16 @@ def ingest_repository_task(repo_id: uuid.UUID):
         if not repo:
             return
         
-        repo.status = "Processing"
+        repo.status = RepositoryStatus.PROCESSING
         session.add(repo)
         session.commit()
+
+        logger = logging.getLogger(__name__)
 
         temp_dir = tempfile.mkdtemp()
         try:
             # 1. Clone
+            logger.info(f"Cloning {repo.url}...")
             Repo.clone_from(repo.url, temp_dir)
 
             # 2. Process Files
@@ -70,15 +75,23 @@ def ingest_repository_task(repo_id: uuid.UUID):
             
             # 5. Save
             session.add_all(chunks_to_save)
-            repo.status = "Completed"
+            repo.status = RepositoryStatus.COMPLETED
             session.add(repo)
             session.commit()
+            logger.info(f"Ingestion completed for {repo.url}")
 
         except Exception as e:
-            repo.status = "Failed"
+            repo.status = RepositoryStatus.FAILED
+            repo.error_message = str(e) # Assuming error_message field exists, if not add it or skip
             session.add(repo)
             session.commit()
-            print(f"Ingestion failed: {e}")
+            logger.error(f"Ingestion failed: {e}")
+            logger.error(f"Ingestion failed: {e}")
         finally:
             if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
+                def on_rm_error(func, path, exc_info):
+                    # path contains the path of the file that couldn't be removed
+                    # let's just assume it's read-only and unlink it.
+                    os.chmod(path, stat.S_IWRITE)
+                    os.unlink(path)
+                shutil.rmtree(temp_dir, onerror=on_rm_error)
