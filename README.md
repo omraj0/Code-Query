@@ -18,7 +18,7 @@
 *   **ORM**: SQLModel (SQLAlchemy + Pydantic)
 *   **AI Models**:
     *   **Embeddings**: `models/text-embedding-004` (via Google AI)
-    *   **LLM**: `gemini-1.5-pro` (via Google AI)
+    *   **LLM**: `gemini-2.5-flash` (via Google AI)
 *   **Services**:
     *   `GitPython`: For cloning repositories.
     *   `LangChain`: For text splitting/chunking.
