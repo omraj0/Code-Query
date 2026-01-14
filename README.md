@@ -49,7 +49,7 @@ When a user asks a question:
 
 ### Prerequisites
 *   Python 3.10+
-*   PostgreSQL with `pgvector` extension installed (`brew install pgvector` on Mac).
+*   Docker & Docker Compose (Recommended) OR PostgreSQL with `pgvector` extension installed locally.
 *   Google AI Studio API Key.
 
 ### Steps
@@ -60,33 +60,53 @@ When a user asks a question:
     cd code-query
     ```
 
-2.  **Install Dependencies**
+2.  **Database Setup (Docker)**
+    This project uses `pgvector` for vector embeddings. The easiest way to run it is via Docker.
+    
+    *   **Start the Database**:
+        ```bash
+        docker compose up -d
+        ```
+    *   **Verify/Troubleshoot**:
+        If you have a local Postgres running on port 5432, we automatically map the Docker container to port **5435** to avoid conflicts.
+        ```yaml
+        # docker-compose.yml
+        ports:
+          - "5435:5432"
+        ```
+    *   **Enable Extension** (Auto-handled, but to verify):
+        ```bash
+        docker exec -it codequery-db psql -U postgres -d codequery -c "CREATE EXTENSION IF NOT EXISTS vector;"
+        ```
+
+3.  **Install Dependencies**
     ```bash
     python -m venv venv
     source venv/bin/activate
     pip install -r requirements.txt
     ```
 
-3.  **Configuration**
+4.  **Configuration**
     Create a `.env` file:
     ```bash
     cp .env.example .env
     ```
     Update the values:
     ```ini
-    DATABASE_URL=postgresql://user:password@localhost:5432/codequery
+    DATABASE_URL=postgresql://postgres:postgres@localhost:5435/codequery
     GEMINI_API_KEY=your_google_api_key
     ```
+    *Note: The port `5435` corresponds to the Docker mapping.*
     *Note: Ensure your `DATABASE_URL` uses `postgresql://` protocol.*
 
-4.  **Run the Server**
+5.  **Run the Server**
     ```bash
     python app/main.py
     # OR
     uvicorn app.main:app --reload
     ```
 
-5.  **Documentation**
+6.  **Documentation**
     Visit `http://localhost:8000/docs` for the interactive Swagger UI.
 
 ## 🧪 Usage
